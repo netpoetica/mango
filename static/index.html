@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<!--[if IE 7]> <html class="no-js ie7"> <![endif]-->
+<!--[if IE 8]> <html class="no-js ie8"> <![endif]-->
+<!--[if IE 8 ]>    <html lang="en" class="ie8"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <title>Mango.js - MongoDB Syntax for your Static JSON Resources</title>
+  </head>
+  <body>
+   <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+   <script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+   <script src='js/mango.js'></script>
+   <script>
+     // root level elements represent collection names. If an object follows, that is the only document in that collection.
+     // Pass an array for multiple objects in one collection.
+     window.mango = new Mango(
+     { 
+       siteData: {
+         title: "Mango",
+         css: ['thekey.css', 'theotherkey.css'],
+         test: {
+           myArr: ['hi', 'my', 'name', 'is', 'keith'],
+           myObj: {
+             name: 'Keith',
+             age: 24
+            },
+            isKeith: true,
+            isJon: false
+         },
+         testNumber: 20,
+         locale: "us",
+         domain: "mangojs.com",
+         tracking_suite: "UA--20--11"
+        },
+        extra: [ 
+          {
+           arr: [0,1,2,3,4,5],
+           obj: { empty: 'object' },
+           name: 'extra',
+           uuid: 01011101
+          },
+          {
+           arr: [4,5,6,12,44],
+           obj: { empty: 'object2' },
+           name: 'extra',
+           uuid: 010123121
+          },
+          {
+           arr: [100,200, 400,5000],
+           obj: { empty: 'object3' },
+           name: 'extra',
+           uuid: 122331414
+          },
+        ],
+        things: [
+          {
+            arrie: [
+              'all',
+              'kinds',
+              'of',
+              'stuff',
+              1,
+              2,
+              3
+            ],
+            arrie2: ['a','b','c'],
+            objy: {
+              stuff: 'things'
+            }
+          }
+        ]
+     }, $);
+   </script>
+  </body>
+</html>
