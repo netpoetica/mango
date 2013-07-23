@@ -1,0 +1,26 @@
+{
+  "name": "mango",
+  "description": "Pass Mango a data object which it will privatize, proving a public MongoDB-like API & Syntax for searching the 'database', even though it's really just a static JSON object. Useful for migrating later from static JSON resource to actual Database for scalability.",
+  "version": "0.0.0",
+  "author": {
+    "name": "Keith Rosenberg",
+    "email": "kthrose@netpoetica.com",
+    "url": "https://github.com/netpoetica"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/netpoetica/mango"
+  },
+  "main": "Gruntfile.js",
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "devDependencies": {
+    "grunt": "*",
+    "grunt-contrib-jshint": "~0.5.3",
+    "grunt-contrib-connect": "~0.2.0",
+    "grunt-contrib-qunit": "~0.2.1",
+    "grunt-contrib-uglify": "~0.2.0",
+    "grunt-contrib-watch": "~0.4.4"
+  }
+}

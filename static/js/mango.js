@@ -13,7 +13,7 @@ var Mango = function(
 
   // Validate initial input
   // You should be able to pass in stringified JSON, or an object we will stringify for you.
-  if(typeof data == 'string'){
+  if(typeof data === 'string'){
     // Should be stringified JSON
     // Validate by parsing JSON  to ensure it doesn't fail.
     try {
@@ -78,7 +78,6 @@ var Mango = function(
   var QuerySelectors = {
     $all: function(context){
       //Matches arrays that contain all elements specified in the query.
-
     },
     $gt: function(context){
       //
@@ -104,27 +103,27 @@ var Mango = function(
  };
  var Logical = {
     $or: function(query){
+      console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
       console.log("-> Mango::Logical::$or", query);
 
       // This is set by binding to the context of the document called within find (using bind() method)
       // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
       var _this = this,   // Represents reference to document
-          results = [],
+          results = null,
           collection = null;
 
-      console.log("DOCUMENT: ", _this);
+      console.log("DOCUMENT: ", _this.toString(), typeof _this, _this);
 
-      // Query can be an array or a single object.
-      $.each(query, function(queryObjIndex, queryObjValue){
-        //console.log("each query: ",this);
-        collection = new Collection(_this);
-        results.push(collection.find(this));
-      });
+      // Should be a single object passed to query
+      // Wrap this single document in a throway collection
+      collection = new Collection(_this);
+      results = collection.find(query);
 
       // Only return an array when the array has something in it.
       console.log("RESULTS: ", results);
-      return results.length ? results: null;
+      console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
+      return results;
     },
     $and: function(context){
 
@@ -132,7 +131,7 @@ var Mango = function(
     $not: function(context){
 
     },
-    $not: function(context){
+    $nor: function(context){
 
     }
  };
@@ -171,6 +170,15 @@ var Mango = function(
     return id;
   };
 
+  // Document Model
+  var Document = function(){
+    this._id = new ObjectID();
+    this._v = 0;
+  };
+  Document.prototype.toString = function(){
+    return '[object Mango::Document]';
+  };
+
   // Collection Model
   var Collection = function(data){
     // data - obj or array of objects
@@ -182,7 +190,7 @@ var Mango = function(
 
     // Private Methods
     function _init(){
-      if($.isPlainObject(data)){
+      if($.isPlainObject(data) || data.toString() === '[object Mango::Document]'){
          // Insert 1 record
          _this.insert(data);
       } else if($.isArray(data)){
@@ -202,7 +210,7 @@ var Mango = function(
 
     // Public API
     this.count = function(){
-      console.log("-> Mango::Collection::count()");
+      //console.log("-> Mango::Collection::count()");
       return _this.length;
     };
 
@@ -212,6 +220,7 @@ var Mango = function(
         // Return all documents.
         return _this;
       } else {
+
         // Store results in all.
         var all = [],
             // Temp reference save mem
@@ -219,53 +228,74 @@ var Mango = function(
             // How many documents in this collection?
             len = _this.count();
 
-        // Search all documents.
-        while(len--){
-          doc = _this[len];
-          //console.log("ITEM: ", item);
-          // Each document.
-          $.each(doc, function(docItemIndex, docItemValue){
-            //console.log("each doc: ", docItemIndex, docItemValue);
-            // Handle a seach where the value of individual attributes equals the query exactly
-            /*if(value === query || JSON.stringify(value) === JSON.stringify(query)){
-              if(projection){
-                var result = checkProjection(projection, value);
-                if(result){
-                  all.push(result);
-                }
-              } else {
-                  // Return document if match is found
-                  all.push(item);
-              }
-            }
-            */
-            $.each(query, function(queryObjIndex, queryObjValue){
-              console.log("each query: ", queryObjIndex, queryObjValue);
-              // First level check
-              if(queryObjIndex === docItemIndex && queryObjValue === docItemValue){
-                all.push(doc);
-              }
-              // If this particular query is available as a logic filter, run it.
-              if(typeof Logical[queryObjIndex] === 'function'){
+        console.log("--> Searching " + len + " documents");
+
+        $.each(query, function(queryObjIndex, queryObjValue){
+          console.log("-->---------------------------");
+          console.log("--> Mango::Find::each query: ", queryObjIndex, queryObjValue);
+
+          // Search all documents.
+          $.each(_this, function(collectionItemIndex, collectionItemObj){
+            doc = collectionItemObj;
+            console.log("----->--------------------------------");
+            console.log("-----> Mango::Find::each document("+collectionItemIndex+")");
+            console.log("----->--------------------------------");
+
+            // If this particular query is available as a logic filter, run it.
+            if(typeof Logical[queryObjIndex] === 'function'){
+              // Could be an object or an array of objects.
+              $.each(queryObjValue, function(queryChildProp, queryChildValue){
+                console.log("----------> Mango::Find::each logic query", queryChildValue);
                 // Pass in the document context and more queries to perform a find against $or params
-                var result = Logical[queryObjIndex].bind(doc, queryObjValue)();
+                var result = Logical[queryObjIndex].bind(doc, queryChildValue)();
                 if(result){
                   all.push(result);
                 }
-              }
-            });
+              });
+            } else {
+              // Each document.
+              $.each(doc, function(docItemIndex, docItemValue){
+                if(typeof docItemValue === 'function'){
+                  // Break out of properties that are not significant
+                  return;
+                }
+
+                console.log("----------> Mango::Find::each property ", docItemIndex, docItemValue);
+
+                // First level check
+                if(queryObjIndex === docItemIndex && queryObjValue === docItemValue){
+                  all.push(doc);
+                }
+
+              });
+              console.log("---> end each document("+collectionItemIndex+")");
+            }
           });
-        }
+          console.log("--> end each query");
+        });
+
         // Wrap as Collection to allow for limiting.
-        return new Collection(all);
+        if(all){
+          if(all.toString() === '[object Mango::Collection]'){
+            // Return the collection
+            return all;
+          } else if(all.length){
+            // All is an array of results, but not a collection
+            return new Collection(all);
+          }
+        } else {
+          // No results found.
+          return null;
+        }
       }
+
     };
     this.findOne = function(query, /* Optional */projection){
       console.log("-> Mango::Collection::findOne()");
       return _this.find(query, projection).limit(1);
     };
     this.insert = function(_data){
-      console.log("-> Mango::Collection::insert("+typeof _data+")");
+      //console.log("-> Mango::Collection::insert("+typeof _data+")");
       // Inserts a record into a collection. If item passed in is not an object, it gets wrapped in one.
       // Handle various types of data that may have been passed to a collection
       switch(typeof _data){
@@ -282,12 +312,12 @@ var Mango = function(
               items[i] = _data[i];
             }
 
-            _this.push($.extend({ _id: new ObjectID(), _v: 0 }, _data));
+            _this.push($.extend(new Document(), _data));
 
           } else {
             // We have an object {}
             //console.log("--> Collection is of Object type.");
-            _this.push($.extend({ _id: new ObjectID(), _v: 0 }, _data));
+            _this.push($.extend(new Document(), _data));
           }
           break;
         default:
@@ -315,10 +345,13 @@ var Mango = function(
   };
 
   // Make a collection an array with extra functions.
-  Collection.prototype = new Array();
+  Collection.prototype = [];
   Collection.prototype.limit = function(num){
     //console.log("-> Collection.limit("+num+")", this);
     return this.slice(0, num);
+  };
+  Collection.prototype.toString = function(){
+    return '[object Mango::Collection]';
   };
 
   // Go through all of the data in the store, turning it into collections.
