@@ -9,7 +9,7 @@ module.exports = function(grunt) {
     connect: {
       server: {
         options: {
-          base: '.',
+          base: './static/',
           hostname: '127.0.0.1',
           port: 8089,
           keepalive: false,

@@ -117,7 +117,14 @@ var Mango = function(
       // Should be a single object passed to query
       // Wrap this single document in a throway collection
       collection = new Collection(_this);
-      results = collection.find(query);
+
+      // Could be an object or an array of objects.
+      $.each(query, function(queryChildProp, queryChildValue){
+        if(!results){
+          console.log("----------> Mango::Find::each logic query", queryChildValue);
+          results = collection.find(queryChildValue);
+        }
+      });
 
       // Only return an array when the array has something in it.
       console.log("RESULTS: ", results);
@@ -126,7 +133,25 @@ var Mango = function(
       return results;
     },
     $and: function(context){
+      console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      console.log("-> Mango::Logical::$and", query);
 
+      var _this = this,   // Represents reference to document
+          results = null,
+          collection = null;
+
+      console.log("DOCUMENT: ", _this.toString(), typeof _this, _this);
+
+      // Should be a single object passed to query
+      // Wrap this single document in a throway collection
+      collection = new Collection(_this);
+      results = collection.find(query);
+
+      // Only return an array when the array has something in it.
+      console.log("RESULTS: ", results);
+      console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
+      return results;
     },
     $not: function(context){
 
@@ -190,23 +215,30 @@ var Mango = function(
 
     // Private Methods
     function _init(){
-      if($.isPlainObject(data) || data.toString() === '[object Mango::Document]'){
-         // Insert 1 record
-         _this.insert(data);
-      } else if($.isArray(data)){
-       var len = data.length,
-           i = 0;
+      if(data){
+        if($.isPlainObject(data) || data.toString() === '[object Mango::Document]'){
+           // Insert 1 record
+           _this.insert(data);
+        } else if($.isArray(data)){
+          var len = data.length,
+              i = 0;
 
-       for( ; i < len; i++){
-          _this.insert(data[i]);
+          for( ; i < len; i++){
+             _this.insert(data[i]);
+          }
+        } else {
+           // Handling case where data passed but did not validate.
+           console.log("--> Invalid data type passed to collection: " + typeof data);
+           return;
+         }
        }
-      } else {
-          console.log("--> Invalid data type passed to collection: " + typeof data);
-      }
 
+      // Empty collection is okay.
+      //
       // Ouput collection to console for debug info.
       console.log("--> Collection contains " +  _this.count() + " documents.");
-    }
+
+    };
 
     // Public API
     this.count = function(){
@@ -220,9 +252,8 @@ var Mango = function(
         // Return all documents.
         return _this;
       } else {
-
         // Store results in all.
-        var all = [],
+        var all = new Collection(),
             // Temp reference save mem
             doc = null,
             // How many documents in this collection?
@@ -243,15 +274,16 @@ var Mango = function(
 
             // If this particular query is available as a logic filter, run it.
             if(typeof Logical[queryObjIndex] === 'function'){
-              // Could be an object or an array of objects.
-              $.each(queryObjValue, function(queryChildProp, queryChildValue){
-                console.log("----------> Mango::Find::each logic query", queryChildValue);
-                // Pass in the document context and more queries to perform a find against $or params
-                var result = Logical[queryObjIndex].bind(doc, queryChildValue)();
-                if(result){
-                  all.push(result);
-                }
-              });
+              // Pass in the document context and more queries to perform a find against $or params
+              var result = Logical[queryObjIndex].bind(doc, queryObjValue)();
+
+              if(result){
+                // For each document in the result collection
+                $.each(result, function(index, elem){
+                  all.insert(elem);
+                });
+              }
+
             } else {
               // Each document.
               $.each(doc, function(docItemIndex, docItemValue){
@@ -264,7 +296,7 @@ var Mango = function(
 
                 // First level check
                 if(queryObjIndex === docItemIndex && queryObjValue === docItemValue){
-                  all.push(doc);
+                  all.insert(doc);
                 }
 
               });
@@ -275,14 +307,9 @@ var Mango = function(
         });
 
         // Wrap as Collection to allow for limiting.
-        if(all){
-          if(all.toString() === '[object Mango::Collection]'){
-            // Return the collection
-            return all;
-          } else if(all.length){
-            // All is an array of results, but not a collection
-            return new Collection(all);
-          }
+        if(all.toString() === '[object Mango::Collection]' && all.count() > 0){
+          // Return the collection
+          return all;
         } else {
           // No results found.
           return null;
@@ -290,10 +317,12 @@ var Mango = function(
       }
 
     };
+
     this.findOne = function(query, /* Optional */projection){
       console.log("-> Mango::Collection::findOne()");
       return _this.find(query, projection).limit(1);
     };
+
     this.insert = function(_data){
       //console.log("-> Mango::Collection::insert("+typeof _data+")");
       // Inserts a record into a collection. If item passed in is not an object, it gets wrapped in one.
@@ -331,6 +360,7 @@ var Mango = function(
       //_this.find(query)
       // if found, delete it. Use slice, not "delete", to make sure the array doesn't contain undefined elements
     };
+
     this.save = function(docOrArray){
       console.log("-> Mango::Collection::save()");
       // _this.find(query)
