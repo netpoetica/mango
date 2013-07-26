@@ -74,6 +74,7 @@ var Mango = function(
       console.log("-> Projections[$slice]....");
     }
   };
+
   //http://docs.mongodb.org/manual/reference/operator/
   var QuerySelectors = {
     $all: function(context){
@@ -101,6 +102,7 @@ var Mango = function(
       //
     }
  };
+
  var Logical = {
     $or: function(query){
       console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -132,12 +134,13 @@ var Mango = function(
 
       return results;
     },
-    $and: function(context){
+    $and: function(query){
       console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
       console.log("-> Mango::Logical::$and", query);
 
-      var _this = this,   // Represents reference to document
-          results = null,
+      var _this = this,         // Represents reference to document
+          results = [],       // Array elements will ultimately be compared to see if they are the same
+          finalResults = null,
           collection = null;
 
       console.log("DOCUMENT: ", _this.toString(), typeof _this, _this);
@@ -145,13 +148,23 @@ var Mango = function(
       // Should be a single object passed to query
       // Wrap this single document in a throway collection
       collection = new Collection(_this);
-      results = collection.find(query);
 
-      // Only return an array when the array has something in it.
-      console.log("RESULTS: ", results);
-      console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      $.each(query, function(queryChildProp, queryChildValue){
+        var find = collection.find(queryChildValue);
+        if(find){
+          results.push(find);
+        }
+      });
 
-      return results;
+      if(results.length > 1){
+        results = $.unique(results);
+        console.log("RESULTS: ", results);
+        console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        return results;
+      }
+
+      return null;
+
     },
     $not: function(context){
 
